@@ -59,11 +59,20 @@ unsigned short get_random_bits(unsigned short n) {
 /* generate a uniform random number in the range [0, max) */
 unsigned short get_random_int(unsigned short max) {
     unsigned short val;
-    unsigned short low = 256 % max;
+    unsigned short low;
+    // special case powers of 2
+    switch (max) {
+    case 1: return 0;
+    case 2: return get_random_bit();
+    case 4: return get_random_bits(2);
+    case 8: return get_random_bits(3);
+    default: break;
+    }
+    low = 128 % max;
     do {
         // this loop is necessary to ensure the numbers are uniformly
         // distributed.
-        val = get_random_bits(8);
+        val = get_random_bits(7);
     } while (val < low);
     return val % max;
 }
@@ -141,6 +150,9 @@ void handle_init(AppContextRef ctx) {
 static void handle_second_tick(AppContextRef ctx, PebbleTickEvent *t) {
   (void)ctx;
   (void)t;
+
+  // Redraw every 3 seconds.
+  if ((t->tick_time->tm_sec % 3) != 0) { return; }
 
   // Causes a redraw of the layer (via the associated layer update callback)
   // Note: This will cause the entire layer to be cleared first so it needs
