@@ -40,20 +40,39 @@ unsigned short get_display_hour(unsigned short hour) {
 
 }
 
+/* generate a uniform random number in the range [0,1] */
 unsigned short get_random_bit(void) {
     static uint16_t lfsr = 0xACE1u;
     /* 16-bit galois LFSR, period 65535. */
     /* see http://en.wikipedia.org/wiki/Linear_feedback_shift_register */
     /* taps: 16 14 13 11; feedback polynomial: x^16 + x^14 + x^13 + x^11 + 1 */
-    lfsr = (lfsr >> 1) ^ (-(lfsr & 1u) & 0xB400u);
-    return lfsr & 1;
+    unsigned short out = lfsr & 1u;
+    lfsr = (lfsr >> 1) ^ (-(out) & 0xB400u);
+    return out;
+}
+/* generate a uniform random number in the range [0, 2^n) */
+unsigned short get_random_bits(unsigned short n) {
+    unsigned short out = 0;
+    while (n--) { out = (out << 1) | get_random_bit(); }
+    return out;
+}
+/* generate a uniform random number in the range [0, max) */
+unsigned short get_random_int(unsigned short max) {
+    unsigned short val;
+    unsigned short low = 256 % max;
+    do {
+        // this loop is necessary to ensure the numbers are uniformly
+        // distributed.
+        val = get_random_bits(8);
+    } while (val < low);
+    return val % max;
 }
 
 void draw_nix_for_digit(GContext *ctx, unsigned short digit,
                         unsigned short rows, unsigned short top) {
     // make an array of top corners
     GPoint cells[rows*3];
-    unsigned short i, j, k;
+    unsigned short i, j;
     unsigned short left;
     for (i=j=0; i<rows; i++) {
         left = BLOCK_MARGIN_LEFT;
@@ -65,19 +84,13 @@ void draw_nix_for_digit(GContext *ctx, unsigned short digit,
         top += BLOCK_SPACING_Y;
     }
     // shuffle cells.
-    // this is a bubble sort (gasp) with comparisons replaced with random bits
-    for (i=rows*3; i!=0; ) {
-        k = 0;
-        for (j=1; j<i; j++) {
-            // "compare" cells[j-1] and cells[j]
-            if (get_random_bit()) {
-                GPoint tmp = cells[j-1];
-                cells[j-1] = cells[j];
-                cells[j] = tmp;
-                k = j;
-            }
-        }
-        i = k;
+    // Durstenfeld's version of the Fisher-Yates shuffle
+    for (i=rows*3; i>1; i--) {
+        j = get_random_int(i);
+        // swap the (i-1) and jth items in the list. (note i-1 can == j)
+        GPoint tmp = cells[i-1];
+        cells[i-1] = cells[j];
+        cells[j] = tmp;
     }
     // draw the first 'digit' cells
     for (i=0; i<digit; i++) {
