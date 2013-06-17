@@ -40,11 +40,20 @@ unsigned short get_display_hour(unsigned short hour) {
 
 }
 
+unsigned short get_random_bit(void) {
+    static uint16_t lfsr = 0xACE1u;
+    /* 16-bit galois LFSR, period 65535. */
+    /* see http://en.wikipedia.org/wiki/Linear_feedback_shift_register */
+    /* taps: 16 14 13 11; feedback polynomial: x^16 + x^14 + x^13 + x^11 + 1 */
+    lfsr = (lfsr >> 1) ^ (-(lfsr & 1u) & 0xB400u);
+    return lfsr & 1;
+}
+
 void draw_nix_for_digit(GContext *ctx, unsigned short digit,
                         unsigned short rows, unsigned short top) {
     // make an array of top corners
     GPoint cells[rows*3];
-    unsigned short i, j;
+    unsigned short i, j, k;
     unsigned short left;
     for (i=j=0; i<rows; i++) {
         left = BLOCK_MARGIN_LEFT;
@@ -55,7 +64,21 @@ void draw_nix_for_digit(GContext *ctx, unsigned short digit,
         cells[j++] = GPoint(left, top);
         top += BLOCK_SPACING_Y;
     }
-    // XXX shuffle cells.
+    // shuffle cells.
+    // this is a bubble sort (gasp) with comparisons replaced with random bits
+    for (i=rows*3; i!=0; ) {
+        k = 0;
+        for (j=1; j<i; j++) {
+            // "compare" cells[j-1] and cells[j]
+            if (get_random_bit()) {
+                GPoint tmp = cells[j-1];
+                cells[j-1] = cells[j];
+                cells[j] = tmp;
+                k = j;
+            }
+        }
+        i = k;
+    }
     // draw the first 'digit' cells
     for (i=0; i<digit; i++) {
         GRect rect = GRect(cells[i].x, cells[i].y, BLOCK_SIZE_X, BLOCK_SIZE_Y);
