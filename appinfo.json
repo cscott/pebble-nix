@@ -9,14 +9,14 @@
     "resources": {
         "media": [
             {
-                "file": "images/nix.png",
-                "name": "NIX_BACKGROUND",
-                "type": "png"
-            },
-            {
                 "file": "images/menu_icon_nix.png",
                 "menuIcon": true,
                 "name": "NIX_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/nix.png",
+                "name": "NIX_BACKGROUND",
                 "type": "png"
             }
         ]

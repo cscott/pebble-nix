@@ -128,6 +128,15 @@ static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 
 static void main_window_load(Window *window) {
     GRect frame = GRect(0, 0, 144, 168);
+    GRect inner = GRect(
+        BLOCK_MARGIN_LEFT, HOURS_TENS_TOP,
+        BLOCK_SPACING_X*3,
+        (MINUTES_ONES_TOP - HOURS_TENS_TOP) + BLOCK_SPACING_Y*3
+    );
+    GRect bounds = GRect(
+        -inner.origin.x, -inner.origin.y,
+        frame.size.w, frame.size.h
+    );
     window_set_background_color(window, GColorBlack);
     // Init the background image
     s_background_image = gbitmap_create_with_resource(
@@ -140,7 +149,9 @@ static void main_window_load(Window *window) {
 
     // Init the layer that shows the time.
     // Associate with layer object and set dimensions.
-    s_time_layer = layer_create(frame);
+    // optimize redraw a little bit by setting a tight frame
+    s_time_layer = layer_create(inner);
+    layer_set_bounds((Layer *)s_time_layer, bounds);
     // Set the drawing callback function for the layer
     layer_set_update_proc(s_time_layer, time_layer_update_callback);
     // Add the child to the app's base window.
