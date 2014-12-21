@@ -156,11 +156,16 @@ static void main_window_load(Window *window) {
     layer_set_update_proc(s_time_layer, time_layer_update_callback);
     // Add the child to the app's base window.
     layer_add_child(window_get_root_layer(window), s_time_layer);
+
+    // Register with TickTimerService
+    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
 static void main_window_unload(Window *window) {
     gbitmap_destroy(s_background_image);
     bitmap_layer_destroy(s_background_image_layer);
+    layer_destroy(s_time_layer);
+    tick_timer_service_unsubscribe();
 }
 
 static void init() {
@@ -175,9 +180,6 @@ static void init() {
 
     // Show the Window on the watch, with animated=true
     window_stack_push(s_window, true /* Animated */);
-
-    // Register with TickTimerService
-    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
 static void deinit() {
