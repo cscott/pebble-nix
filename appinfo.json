@@ -1,0 +1,31 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "cscott@cscott.net",
+    "longName": "Nix",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/nix.png",
+                "name": "NIX_BACKGROUND",
+                "type": "png"
+            },
+            {
+                "file": "images/menu_icon_nix.png",
+                "menuIcon": true,
+                "name": "NIX_ICON",
+                "type": "png"
+            }
+        ]
+    },
+    "shortName": "Nix",
+    "uuid": "32d5df25-1321-4780-9284-d4aa39dc4f5f",
+    "versionCode": 1,
+    "versionLabel": "1.1",
+    "watchapp": {
+        "watchface": true
+    }
+}

@@ -1,20 +1,11 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
 
+static Window *s_window;
 
-#define MY_UUID { 0x32, 0xD5, 0xDF, 0x25, 0x13, 0x21, 0x47, 0x80, 0x92, 0x84, 0xD4, 0xAA, 0x39, 0xDC, 0x4F, 0x5F }
-PBL_APP_INFO(MY_UUID,
-             "Nix", "cscott.net",
-             1, 0, /* App version */
-             RESOURCE_ID_IMAGE_MENU_ICON,
-             APP_INFO_WATCH_FACE);
+static GBitmap *s_background_image;
+static BitmapLayer *s_background_image_layer;
 
-Window window;
-
-BmpContainer image_container;
-
-Layer timeLayer; // The filled-in dots
+static Layer *s_time_layer; // The filled-in dots
 
 #define BLOCK_SIZE_X 16
 #define BLOCK_SIZE_Y 14
@@ -27,21 +18,21 @@ Layer timeLayer; // The filled-in dots
 #define MINUTES_TENS_TOP 79
 #define MINUTES_ONES_TOP 116
 
-unsigned short get_display_hour(unsigned short hour) {
+static unsigned short get_display_hour(unsigned short hour) {
 
-  if (clock_is_24h_style()) {
-    return hour;
-  }
+    if (clock_is_24h_style()) {
+        return hour;
+    }
 
-  unsigned short display_hour = hour % 12;
+    unsigned short display_hour = hour % 12;
 
-  // Converts "0" to "12"
-  return display_hour ? display_hour : 12;
+    // Converts "0" to "12"
+    return display_hour ? display_hour : 12;
 
 }
 
 /* generate a uniform random number in the range [0,1] */
-unsigned short get_random_bit(void) {
+static unsigned short get_random_bit(void) {
     static uint16_t lfsr = 0xACE1u;
     /* 16-bit galois LFSR, period 65535. */
     /* see http://en.wikipedia.org/wiki/Linear_feedback_shift_register */
@@ -50,14 +41,16 @@ unsigned short get_random_bit(void) {
     lfsr = (lfsr >> 1) ^ (-(out) & 0xB400u);
     return out;
 }
+
 /* generate a uniform random number in the range [0, 2^n) */
-unsigned short get_random_bits(unsigned short n) {
+static unsigned short get_random_bits(unsigned short n) {
     unsigned short out = 0;
     while (n--) { out = (out << 1) | get_random_bit(); }
     return out;
 }
+
 /* generate a uniform random number in the range [0, max) */
-unsigned short get_random_int(unsigned short max) {
+static unsigned short get_random_int(unsigned short max) {
     unsigned short val;
     unsigned short low;
     // special case powers of 2
@@ -77,8 +70,8 @@ unsigned short get_random_int(unsigned short max) {
     return val % max;
 }
 
-void draw_nix_for_digit(GContext *ctx, unsigned short digit,
-                        unsigned short rows, unsigned short top) {
+static void draw_nix_for_digit(GContext *ctx, unsigned short digit,
+                               unsigned short rows, unsigned short top) {
     // make an array of top corners
     GPoint cells[rows*3];
     unsigned short i, j;
@@ -108,75 +101,81 @@ void draw_nix_for_digit(GContext *ctx, unsigned short digit,
     }
 }
 
-void timeLayer_update_callback(Layer *me, GContext *ctx) {
+static void time_layer_update_callback(Layer *me, GContext *ctx) {
+    time_t t = time(NULL);
+    struct tm * tm = localtime(&t);
     (void)me;
 
-    PblTm t;
-
-    get_time(&t);
-
-    unsigned short display_hour = get_display_hour(t.tm_hour);
+    unsigned short display_hour = get_display_hour(tm->tm_hour);
     graphics_context_set_fill_color(ctx, GColorWhite);
     draw_nix_for_digit(ctx, display_hour/10, 1, HOURS_TENS_TOP);
     draw_nix_for_digit(ctx, display_hour%10, 3, HOURS_ONES_TOP);
-    draw_nix_for_digit(ctx, t.tm_min / 10, 2, MINUTES_TENS_TOP);
-    draw_nix_for_digit(ctx, t.tm_min % 10, 3, MINUTES_ONES_TOP);
-}
-
-void handle_init(AppContextRef ctx) {
-    (void)ctx;
-
-    window_init(&window, "Nix");
-    window_stack_push(&window, true /* Animated */);
-
-    resource_init_current_app(&NIX_IMAGE_RESOURCES);
-
-    // Note: This needs to be "de-inited" in the application's
-    //       deinit handler.
-    bmp_init_container(RESOURCE_ID_IMAGE_NIX_BACKGROUND, &image_container);
-
-    layer_add_child(&window.layer, &image_container.layer.layer);
-
-    // Init the layer that shows the time.
-    // Associate with layer object and set dimensions.
-    layer_init(&timeLayer, window.layer.frame);
-    // Set the drawing callback function for the layer
-    timeLayer.update_proc = &timeLayer_update_callback;
-    // Add the child to the app's base window.
-    layer_add_child(&window.layer, &timeLayer);
+    draw_nix_for_digit(ctx, tm->tm_min / 10, 2, MINUTES_TENS_TOP);
+    draw_nix_for_digit(ctx, tm->tm_min % 10, 3, MINUTES_ONES_TOP);
 }
 
 // Called once per second
-static void handle_second_tick(AppContextRef ctx, PebbleTickEvent *t) {
-  (void)ctx;
-  (void)t;
+static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
+    // Redraw every 3 seconds.
+    if ((tick_time->tm_sec % 3) != 0) { return; }
 
-  // Redraw every 3 seconds.
-  if ((t->tick_time->tm_sec % 3) != 0) { return; }
-
-  // Causes a redraw of the layer (via the associated layer update callback)
-  // Note: This will cause the entire layer to be cleared first so it needs
-  //       to be redrawn in its entirety
-  layer_mark_dirty(&timeLayer);
-  // XXX recompute time array?
+    // Causes a redraw of the layer (via the associated layer update callback)
+    // Note: This will cause the entire layer to be cleared first so it needs
+    //       to be redrawn in its entirety
+    layer_mark_dirty(s_time_layer);
+    // XXX recompute time array?
 }
 
-void handle_deinit(AppContextRef ctx) {
-    (void)ctx;
+static void main_window_load(Window *window) {
+    GRect frame = GRect(0, 0, 144, 168);
+    window_set_background_color(window, GColorBlack);
+    // Init the background image
+    s_background_image = gbitmap_create_with_resource(
+        RESOURCE_ID_NIX_BACKGROUND
+    );
+    s_background_image_layer = bitmap_layer_create(frame);
+    bitmap_layer_set_bitmap(s_background_image_layer, s_background_image);
+    layer_add_child(window_get_root_layer(window),
+                    bitmap_layer_get_layer(s_background_image_layer));
 
-    // Note: Failure to de-init this here will result in instability and
-    //       unable to allocate memory errors.
-    bmp_deinit_container(&image_container);
+    // Init the layer that shows the time.
+    // Associate with layer object and set dimensions.
+    s_time_layer = layer_create(frame);
+    // Set the drawing callback function for the layer
+    layer_set_update_proc(s_time_layer, time_layer_update_callback);
+    // Add the child to the app's base window.
+    layer_add_child(window_get_root_layer(window), s_time_layer);
 }
 
-void pbl_main(void *params) {
-    PebbleAppHandlers handlers = {
-        .init_handler = &handle_init,
-        .deinit_handler = &handle_deinit,
-        .tick_info = {
-            .tick_handler = &handle_second_tick,
-            .tick_units = SECOND_UNIT
-        }
-    };
-    app_event_loop(params, &handlers);
+static void main_window_unload(Window *window) {
+    gbitmap_destroy(s_background_image);
+    bitmap_layer_destroy(s_background_image_layer);
+}
+
+static void init() {
+    // Create main Window element and assign to pointer
+    s_window = window_create();
+
+    // Set handlers to manage the elements inside the Window
+    window_set_window_handlers(s_window, (WindowHandlers) {
+        .load = main_window_load,
+        .unload = main_window_unload
+    });
+
+    // Show the Window on the watch, with animated=true
+    window_stack_push(s_window, true /* Animated */);
+
+    // Register with TickTimerService
+    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+}
+
+static void deinit() {
+    // Destroy Window
+    window_destroy(s_window);
+}
+
+int main(void) {
+    init();
+    app_event_loop();
+    deinit();
 }

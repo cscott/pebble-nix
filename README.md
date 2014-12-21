@@ -8,4 +8,4 @@ The number of filled squares in each group gives the digits in the current
 time.  Hours are at the top.  The pattern of filled squares changes every
 three seconds.
 
-Copyright (c) 2013 C. Scott Ananian.  Licensed under the GPLv2.
+Copyright (c) 2013-2014 C. Scott Ananian.  Licensed under the GPLv2.
