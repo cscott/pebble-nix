@@ -9,14 +9,14 @@
     "resources": {
         "media": [
             {
-                "file": "images/menu_icon_nix.png",
-                "menuIcon": true,
-                "name": "NIX_ICON",
+                "file": "images/nix.png",
+                "name": "NIX_BACKGROUND",
                 "type": "png"
             },
             {
-                "file": "images/nix.png",
-                "name": "NIX_BACKGROUND",
+                "file": "images/menu_icon_nix.png",
+                "menuIcon": true,
+                "name": "NIX_ICON",
                 "type": "png"
             }
         ]
@@ -24,7 +24,7 @@
     "shortName": "Nix",
     "uuid": "32d5df25-1321-4780-9284-d4aa39dc4f5f",
     "versionCode": 1,
-    "versionLabel": "1.1",
+    "versionLabel": "1.2",
     "watchapp": {
         "watchface": true
     }
