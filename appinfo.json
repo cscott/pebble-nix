@@ -23,8 +23,8 @@
   },
   "shortName": "Nix",
   "uuid": "32d5df25-1321-4780-9284-d4aa39dc4f5f",
-  "versionCode": 1,
-  "versionLabel": "1.2",
+  "versionCode": 2,
+  "versionLabel": "1.3",
   "watchapp": {
     "watchface": true
   },
