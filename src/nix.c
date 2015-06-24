@@ -18,6 +18,18 @@ static Layer *s_time_layer; // The filled-in dots
 #define MINUTES_TENS_TOP 79
 #define MINUTES_ONES_TOP 116
 
+#ifdef PBL_COLOR
+# define HOURS_TENS_COLOR	GColorRed
+# define HOURS_ONES_COLOR	GColorGreen
+# define MINUTES_TENS_COLOR	GColorBlue
+# define MINUTES_ONES_COLOR	GColorRed
+#else
+# define HOURS_TENS_COLOR	GColorWhite
+# define HOURS_ONES_COLOR	GColorWhite
+# define MINUTES_TENS_COLOR	GColorWhite
+# define MINUTES_ONES_COLOR	GColorWhite
+#endif
+
 static unsigned short get_display_hour(unsigned short hour) {
 
     if (clock_is_24h_style()) {
@@ -107,10 +119,13 @@ static void time_layer_update_callback(Layer *me, GContext *ctx) {
     (void)me;
 
     unsigned short display_hour = get_display_hour(tm->tm_hour);
-    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_context_set_fill_color(ctx, HOURS_TENS_COLOR);
     draw_nix_for_digit(ctx, display_hour/10, 1, HOURS_TENS_TOP);
+    graphics_context_set_fill_color(ctx, HOURS_ONES_COLOR);
     draw_nix_for_digit(ctx, display_hour%10, 3, HOURS_ONES_TOP);
+    graphics_context_set_fill_color(ctx, MINUTES_TENS_COLOR);
     draw_nix_for_digit(ctx, tm->tm_min / 10, 2, MINUTES_TENS_TOP);
+    graphics_context_set_fill_color(ctx, MINUTES_ONES_COLOR);
     draw_nix_for_digit(ctx, tm->tm_min % 10, 3, MINUTES_ONES_TOP);
 }
 
